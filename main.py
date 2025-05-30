@@ -1,7 +1,11 @@
 import sqlite3 as sq
 
 class DataBase:
-    def __init__(self):
+    def __init__(self, db_name: str):
+        if self.__validate(db_name):
+            self.__db_name = db_name
+        else: raise ValueError()
+
         self.__name = None
         self.__value = None
         self.__user_id = None
@@ -49,48 +53,60 @@ class DataBase:
         if self.__validate("",0,new_user_id,0):
             self.__new_user_id = new_user_id
 
+    @property
+    def db_name(self):
+        return self.__db_name
+
+    @db_name.setter
+    def db_name(self, db_name: str):
+        if self.__validate(db_name):
+            self.__db_name = db_name
+
     def drop_db(self):
         return "DROP TABLE IF EXISTS users"
     
     def creating_db(self):
-        return """CREATE TABLE IF NOT EXISTS users(
+        return f"""CREATE TABLE IF NOT EXISTS {self.__db_name}(
             user_id INTEGER,
             name TEXT,
             score INTEGER
         )"""
 
     def insert_db(self):
-        return "INSERT INTO users (user_id, name, score) VALUES (?, ?, ?)", (self.__user_id, self.__name, self.__value)
+        return f"INSERT INTO {self.__db_name} (user_id, name, score) VALUES (?, ?, ?)", (self.__user_id, self.__name, self.__value)
 
     def delete_db(self):
-        return "DELETE FROM users WHERE user_id = ?", (self.__user_id,)
+        return f"DELETE FROM {self.__db_name} WHERE user_id = ?", (self.__user_id,)
     
     def select_all(self):
-        return "SELECT * FROM users"
+        return f"SELECT * FROM {self.__db_name}"
 
     def select_by_userid(self):
-        return "SELECT * FROM users WHERE user_id = ?", (self.__user_id,)
+        return f"SELECT * FROM {self.__db_name} WHERE user_id = ?", (self.__user_id,)
 
     def select_by_name(self):
-        return "SELECT * FROM users WHERE name = ?", (self.__name,)
+        return f"SELECT * FROM {self.db_name} WHERE name = ?", (self.__name,)
 
     def select_by_score(self):
-        return "SELECT * FROM users WHERE score = ?", (self.__value,)
+        return f"SELECT * FROM {self.__db_name} WHERE score = ?", (self.__value,)
 
     def sum_by_id(self):
-        return ("select user_id, sum(score) as sum_score from users where user_id = ? group by user_id", (self.__user_id,))
+        return (f"select user_id, sum(score) as sum_score from {self.__db_name} where user_id = ? group by user_id", (self.__user_id,))
 
     def update(self):
-        return ("UPDATE users SET name = ?, score = ?,user_id = ? WHERE user_id = ?"), (self.__name, self.__value,self.__new_user_id, self.__user_id)
+        return (f"UPDATE {self.__db_name} SET name = ?, score = ?,user_id = ? WHERE user_id = ?"), (self.__name, self.__value,self.__new_user_id, self.__user_id)
+    
+    def see_all_table(self):
+        return f"SELECT name FROM sqlite_master WHERE type='table'"
 
-db = DataBase()
+db = DataBase("users")
 
 with sq.connect("test.db") as con:
     cur = con.cursor()
     
     while True:
         print("\nВыберите действие:")
-        print("[1] Создать таблицу users")
+        print("[1] Создать таблицу с выбором названия")
         print("[2] Вставить пользователя")
         print("[3] Удалить пользователя по user_id")
         print("[4] Просмотреть все записи")
@@ -101,15 +117,18 @@ with sq.connect("test.db") as con:
         print("[9] Удалить базу данных")
         print("[10] Обновить базу данных")
         print("[11] Выход")
+        print("[12] Посмотреть все таблицы в базе данных")
 
         choose = input(">>> ")
 
         match choose:
             case "1":
+                db.db_name = input("Введите название таблицы: ")
                 cur.execute(db.creating_db())
                 print("✅ Таблица создана.")
 
             case "2":
+                db.db_name = input("Введите название таблицы для поиска:")
                 temp = input("Введите имя, счет и id пользователя через пробел: ").split()
                 db.name = temp[0]
                 db.score = int(temp[1])
@@ -120,6 +139,7 @@ with sq.connect("test.db") as con:
                 print("✅ Пользователь добавлен.")
 
             case "3":
+                db.db_name = input("Введите название таблицы для продолжения:")
                 db.user_id = int(input("Введите user_id для удаления: "))
                 query, params = db.delete_db()
                 cur.execute(query, params)
@@ -127,6 +147,7 @@ with sq.connect("test.db") as con:
                 print("✅ Пользователь удалён.")
 
             case "4":
+                db.db_name = input("Введите название таблицы для продолжения:")
                 query = db.select_all()
                 cur.execute(query)
                 items = cur.fetchall()
@@ -137,6 +158,7 @@ with sq.connect("test.db") as con:
                 else: print("❌ Пользователь не найден.")
 
             case "5":
+                db.db_name = input("Введите название таблицы для продолжения:")
                 db.user_id = int(input("Введите user_id для поиска: "))
                 query, params = db.select_by_userid()
                 cur.execute(query, params)
@@ -144,6 +166,7 @@ with sq.connect("test.db") as con:
                 print(result if result else "❌ Пользователь не найден.")
 
             case "6":
+                db.db_name = input("Введите название таблицы для продолжения:")
                 db.name = input("Введите имя для поиска: ")
                 query, params = db.select_by_name()
                 cur.execute(query, params)
@@ -156,6 +179,7 @@ with sq.connect("test.db") as con:
                     print("❌ Пользователи не найдены.")
 
             case "7":
+                db.db_name = input("Введите название таблицы для продолжения:")
                 db.score = int(input("Введите score для поиска: "))
                 query, params = db.select_by_score()
                 cur.execute(query, params)
@@ -168,6 +192,7 @@ with sq.connect("test.db") as con:
                     print("❌ Пользователи не найдены.")
 
             case "8":
+                db.db_name = input("Введите название таблицы для продолжения:")
                 db.user_id = int(input("Введите id для суммирования: "))
                 query, params = db.sum_by_id()
                 cur.execute(query, params)
@@ -179,10 +204,12 @@ with sq.connect("test.db") as con:
                     print("❌ Пользователи не найдены.")
 
             case "9":
+                db.db_name = input("Введите название таблицы для продолжения:")
                 cur.execute(db.drop_db())
                 print("✅ База данных удалена" )
             
             case "10":
+                db.db_name = input("Введите название таблицы для продолжения:")
                 cur.execute(db.select_all())
                 items = cur.fetchall()
 
@@ -201,9 +228,19 @@ with sq.connect("test.db") as con:
                 cur.execute(query, params)
                 result = cur.fetchall() 
                 print(f"Данные обновленны на: имя: {db.name}, рекорд: {db.score}, id пользвателя {db.user_id}")
-
+            
             case "11":
                 print("👋 Выход из программы.")
                 break
+
+            case "12":
+                cur.execute(db.see_all_table())
+                tables = cur.fetchall()
+                if tables:
+                    print("📋 Таблицы в базе данных:")
+                    for table in tables:
+                        print(f" - {table[0]}")
+                else:
+                    print("❌ Таблиц не найдено.")
             case _:
                 print("❗ Неверный выбор. Попробуйте снова.")
